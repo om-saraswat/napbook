@@ -24,6 +24,7 @@ const Topbar = () => {
             width={55}
             height={100}
           />
+           <p className="font-bold text-2xl">Napbook</p>
         </Link>
 
         <div className="flex gap-4">
