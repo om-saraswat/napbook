@@ -5,7 +5,7 @@ import SigninForm from './auth/forms/SigninForm';
 import SignupForm from './auth/forms/SignupForm';
 import { AllUsers, CreatePost, EditPost, Explore, Home, PostDetails, Profile, Saved, UpdateProfile } from './root/pages';
 import AuthLayout from './auth/forms/AuthLayout';
-import RootLayout from './root/pages/RootLayout';
+import RootLayout from './root/RootLayout';
 import { Toaster } from "@/components/ui/toaster"
 function App() {
   return(
@@ -36,3 +36,6 @@ function App() {
 }
 
 export default App
+
+
+// 3:00
