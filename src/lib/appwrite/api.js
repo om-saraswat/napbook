@@ -151,7 +151,8 @@ export async function createPost(post) {
     }
 
     // Convert tags into array
-    const tags = post.tags?.replace(/ /g, "").split(",") || [];
+    const tags = post.tags?.trim() || "";
+
 
     // Create post
     const newPost = await databases.createDocument(
@@ -218,6 +219,66 @@ export async function deleteFile(fileId) {
   try {
     await storage.deleteFile(appwriteConfig.storageId, fileId);
     return { status: "ok" };
+  } catch (error) {
+    console.log(error);
+  }
+}
+
+export async function updatePost(post) {
+  const hasFileToUpdate = post.file.length > 0;
+
+  try {
+    let image = {
+      imageurl: post.imageUrl,
+      imageid: post.imageId,
+    };
+
+    if (hasFileToUpdate) {
+      // Upload new file to appwrite storage
+      const uploadedFile = await uploadFile(post.file[0]);
+      if (!uploadedFile) throw new Error("File upload failed");
+
+      // Get new file url
+      const fileUrl = getFilePreview(uploadedFile.$id);
+      if (!fileUrl) {
+        await deleteFile(uploadedFile.$id);
+        throw new Error("File URL generation failed");
+      }
+
+      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
+    }
+
+    // Convert tags into array
+    const tags = post.tags?.trim() || "";
+
+    // Update post
+    const updatedPost = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      post.postId,
+      {
+        Caption: post.caption,
+        imageurl: image.imageUrl,
+        imageid: image.imageId,
+        location: post.location,
+        tags: tags,
+      }
+    );
+
+    // Failed to update
+    if (!updatedPost) {
+      if (hasFileToUpdate) {
+        await deleteFile(image.imageId);
+      }
+      throw new Error("Post update failed");
+    }
+
+    // Safely delete old file after successful update
+    if (hasFileToUpdate) {
+      await deleteFile(post.imageId);
+    }
+
+    return updatedPost;
   } catch (error) {
     console.log(error);
   }
