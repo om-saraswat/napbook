@@ -257,7 +257,7 @@ export async function updatePost(post) {
       appwriteConfig.postCollectionId,
       post.postId,
       {
-        Caption: post.caption,
+        Captions: post.caption,
         imageurl: image.imageUrl,
         imageid: image.imageId,
         location: post.location,
@@ -281,5 +281,116 @@ export async function updatePost(post) {
     return updatedPost;
   } catch (error) {
     console.log(error);
+  }
+}
+export async function getRecentPosts() {
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.orderDesc("$createdAt"), Query.limit(20)]
+    );
+
+    if (!posts) throw Error;
+
+    return posts;
+  } catch (error) {
+    console.log(error);
+  }
+}
+export async function getUsers(limit) {
+  const queries = [Query.orderDesc("$createdAt")];
+
+  if (limit) {
+    queries.push(Query.limit(limit));
+  }
+
+  try {
+    const users = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      queries
+    );
+
+    if (!users) throw Error;
+
+    return users;
+  } catch (error) {
+    console.log(error);
+  }
+}
+export async function likePost(postId, likesArray) {
+  try {
+    const updatedPost = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      postId,
+      {
+        likes: likesArray,
+      }
+    );
+
+    if (!updatedPost) throw new Error("Failed to update post likes");
+
+    return updatedPost;
+  } catch (error) {
+    console.log("likePost error:", error);
+  }
+}
+
+// ============================== SAVE POST
+export async function savePost(userId, postId) {
+  try {
+    const updatedPost = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      ID.unique(),
+      {
+        user: userId,
+        post: postId,
+      }
+    );
+
+    if (!updatedPost) throw new Error("Failed to save post");
+
+    return updatedPost;
+  } catch (error) {
+    console.log("savePost error:", error);
+  }
+}
+
+// ============================== DELETE SAVED POST
+export async function deleteSavedPost(savedRecordId) {
+  try {
+    const statusCode = await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      savedRecordId
+    );
+
+    if (!statusCode) throw new Error("Failed to delete saved post");
+
+    return { status: "Ok" };
+  } catch (error) {
+    console.log("deleteSavedPost error:", error);
+  }
+}
+export async function deletePost(postId, imageId) {
+  if (!postId || !imageId) return;
+
+  try {
+    const statusCode = await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      postId
+    );
+
+    if (!statusCode) throw new Error("Failed to delete post document");
+
+    await deleteFile(imageId);
+
+    return { status: "Ok" };
+  } catch (error) {
+    console.log("deletePost error:", error);
   }
 }
