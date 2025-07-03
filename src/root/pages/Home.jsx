@@ -42,6 +42,9 @@ const Home = () => {
               {posts?.documents.map((post) => (
                 <li key={post.$id} className="flex justify-center w-full">
                   <PostCard post={post} />
+                  {console.log("Documents:", posts?.documents)}
+
+
                 </li>
               ))}
             </ul>

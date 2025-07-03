@@ -22,13 +22,14 @@ export const PostStats = ({ post, userId }) => {
 
   const { data: currentUser } = useGetCurrentUser();
 
-  const savedPostRecord = currentUser?.save.find(
-    (record) => record.post.$id === post.$id
-  );
+  // ✅ Safe check for saved post
+  const savedPostRecord = Array.isArray(currentUser?.save)
+    ? currentUser.save.find((record) => record.post.$id === post.$id)
+    : null;
 
   useEffect(() => {
     setIsSaved(!!savedPostRecord);
-  }, [currentUser]);
+  }, [savedPostRecord]);
 
   const handleLikePost = (e) => {
     e.stopPropagation();

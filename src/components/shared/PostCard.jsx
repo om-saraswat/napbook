@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-
 import { PostStats } from "./PostStats";
 import { multiFormatDateString } from "../../lib/utils";
 import { useUserContext } from "../../context/AuthContext";
@@ -7,7 +6,14 @@ import { useUserContext } from "../../context/AuthContext";
 const PostCard = ({ post }) => {
   const { user } = useUserContext();
 
-  if (!post.creator) return null;
+  if (!post.Creator) return null;
+
+  // Ensure tags is always an array
+  const tagsArray = Array.isArray(post.tags)
+    ? post.tags
+    : typeof post.tags === "string"
+    ? post.tags.split(",").map((tag) => tag.trim())
+    : [];
 
   return (
     <div className="post-card">
@@ -29,7 +35,7 @@ const PostCard = ({ post }) => {
               {post.Creator.name}
             </p>
             <div className="flex-center gap-2 text-light-3">
-              <p className="subtle-semibold lg:small-regular ">
+              <p className="subtle-semibold lg:small-regular">
                 {multiFormatDateString(post.$createdAt)}
               </p>
               •
@@ -42,7 +48,8 @@ const PostCard = ({ post }) => {
 
         <Link
           to={`/update-post/${post.$id}`}
-          className={`${user.id !== post.Creator.$id && "hidden"}`}>
+          className={`${user.id !== post.Creator.$id && "hidden"}`}
+        >
           <img
             src={"/assets/icons/edit.svg"}
             alt="edit"
@@ -56,18 +63,22 @@ const PostCard = ({ post }) => {
         <div className="small-medium lg:base-medium py-5">
           <p>{post.Captions}</p>
           <ul className="flex gap-1 mt-2">
-            {post.tags.map((tag, index) => (
+            {tagsArray.map((tag, index) => (
               <li key={`${tag}${index}`} className="text-light-3 small-regular">
                 #{tag}
               </li>
             ))}
           </ul>
         </div>
-
+        {console.log(post.imageurl)}
         <img
           src={post.imageurl || "/assets/icons/profile-placeholder.svg"}
           alt="post image"
           className="post-card_img"
+          onError={(e) => {
+    console.error("Image failed to load:", post.imageurl);
+    e.target.src = "/assets/icons/profile-placeholder.svg";
+  }}
         />
       </Link>
 

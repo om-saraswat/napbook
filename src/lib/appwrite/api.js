@@ -184,13 +184,16 @@ export async function uploadFile(file) {
     const uploadedFile = await storage.createFile(
       appwriteConfig.storageId,
       ID.unique(),
-      file
+      file,
+      [
+        Permission.read(Role.any()), // 👈 This makes it public
+      ]
     );
 
     return uploadedFile;
   } catch (error) {
     console.log(error);
-    return null
+    return null;
   }
 }
 // ============================== GET FILE PREVIEW
@@ -245,7 +248,7 @@ export async function updatePost(post) {
         throw new Error("File URL generation failed");
       }
 
-      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
+      image = { ...image, imageurl: fileUrl, imageid: uploadedFile.$id };
     }
 
     // Convert tags into array
@@ -268,14 +271,14 @@ export async function updatePost(post) {
     // Failed to update
     if (!updatedPost) {
       if (hasFileToUpdate) {
-        await deleteFile(image.imageId);
+        await deleteFile(image.imageid);
       }
       throw new Error("Post update failed");
     }
 
     // Safely delete old file after successful update
     if (hasFileToUpdate) {
-      await deleteFile(post.imageId);
+      await deleteFile(post.imageid);
     }
 
     return updatedPost;
