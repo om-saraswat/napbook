@@ -2,13 +2,13 @@ import { Link } from "react-router-dom";
 import { PostStats } from "./PostStats";
 import { multiFormatDateString } from "../../lib/utils";
 import { useUserContext } from "../../context/AuthContext";
-
+import { appwriteConfig, storage } from "../../lib/appwrite/config";
 const PostCard = ({ post }) => {
   const { user } = useUserContext();
-
+  
   if (!post.Creator) return null;
-
-  // Ensure tags is always an array
+  const previewUrl = post.imageurl;
+  console.log(previewUrl);
   const tagsArray = Array.isArray(post.tags)
     ? post.tags
     : typeof post.tags === "string"
@@ -70,15 +70,11 @@ const PostCard = ({ post }) => {
             ))}
           </ul>
         </div>
-        {console.log(post.imageurl)}
         <img
-          src={post.imageurl || "/assets/icons/profile-placeholder.svg"}
+          src={previewUrl}
           alt="post image"
           className="post-card_img"
-          onError={(e) => {
-    console.error("Image failed to load:", post.imageurl);
-    e.target.src = "/assets/icons/profile-placeholder.svg";
-  }}
+          
         />
       </Link>
 

@@ -144,7 +144,7 @@ export async function createPost(post) {
     if (!uploadedFile) throw new Error("File upload failed");
 
     // Get file url
-    const fileUrl = getFilePreview(uploadedFile.$id);
+    const fileUrl = getFileView(uploadedFile.$id);
     if (!fileUrl) {
       await deleteFile(uploadedFile.$id);
       throw new Error("Failed to get file URL");
@@ -185,9 +185,6 @@ export async function uploadFile(file) {
       appwriteConfig.storageId,
       ID.unique(),
       file,
-      [
-        Permission.read(Role.any()), // 👈 This makes it public
-      ]
     );
 
     return uploadedFile;
@@ -197,22 +194,23 @@ export async function uploadFile(file) {
   }
 }
 // ============================== GET FILE PREVIEW
-export function getFilePreview(fileId) {
+// ============================== GET FILE VIEW (Updated)
+export function getFileView(fileId) {
   try {
-    const fileUrl = storage.getFilePreview(
+    const fileUrl = storage.getFileView(
       appwriteConfig.storageId,
-      fileId,
-      2000,
-      2000,
-      "top",
-      100
+      fileId
     );
-
-    if (!fileUrl) throw new Error("Failed to get file preview");
-
-    return fileUrl;
+    
+    // Manually construct URL with project ID if needed
+    const finalUrl = `${fileUrl}`;
+    
+    console.log("Generated file URL:", finalUrl); // Debugging
+    
+    if (!fileUrl) throw new Error("Failed to get file URL");
+    return finalUrl;
   } catch (error) {
-    console.log(error);
+    console.error("Error in getFilePreview:", error);
     return null;
   }
 }
@@ -242,13 +240,13 @@ export async function updatePost(post) {
       if (!uploadedFile) throw new Error("File upload failed");
 
       // Get new file url
-      const fileUrl = getFilePreview(uploadedFile.$id);
+      const fileUrl = getFileView(uploadedFile.$id);
       if (!fileUrl) {
         await deleteFile(uploadedFile.$id);
         throw new Error("File URL generation failed");
       }
 
-      image = { ...image, imageurl: fileUrl, imageid: uploadedFile.$id };
+      image = { ...image, imageUrl: fileUrl, imageId: uploadedFile.$id };
     }
 
     // Convert tags into array
@@ -295,8 +293,9 @@ export async function getRecentPosts() {
     );
 
     if (!posts) throw Error;
-
+    console.log("fefe",posts);
     return posts;
+    
   } catch (error) {
     console.log(error);
   }
