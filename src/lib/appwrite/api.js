@@ -225,6 +225,24 @@ export async function deleteFile(fileId) {
   }
 }
 
+export async function getPostById(postId) {
+  if (!postId) throw new Error('Post ID is required');
+
+  try {
+    const post = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      postId
+    );
+
+    if (!post) throw new Error('Post not found');
+
+    return post;
+  } catch (error) {
+    console.log(error);
+  }
+}
+
 export async function updatePost(post) {
   const hasFileToUpdate = post.file.length > 0;
 

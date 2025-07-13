@@ -30,7 +30,8 @@ const PostForm = ({ post, action }) => {
       caption: post ? post.caption : "",
       file: [],
       location: post ? post.location : "",
-      tags: post ? post.tags.join(",") : "",
+      tags: Array.isArray(post?.tags) ? post.tags.join(",") : post?.tags || "",
+
     },
   });
 
