@@ -1,5 +1,5 @@
 export { default as Bottombar } from "./Bottombar.jsx";
-export { default as LeftSidebar } from "./LeftSidebar.jsx";
+export { default as Leftsidebar } from "./Leftsidebar.jsx";
 export { default as Loader } from "./Loader.jsx";
 export { default as PostCard } from "./PostCard.jsx";
 export { default as GridPostList } from "./GridPostList.jsx";
