@@ -85,37 +85,58 @@ export async function getAccount() {
 export async function getCurrentUser() {
   try {
     const currentAccount = await getAccount();
+    console.log("Current Account:", currentAccount);
+
     if (!currentAccount) throw new Error("No account found");
 
-    const currentUser = await databases.listDocuments(
-      appwriteConfig.databaseId,
-      appwriteConfig.userCollectionId,
-      [Query.equal("accountid", currentAccount.$id)]
-    );
-    console.log("Database query result:", currentUser); // Debugging log
+    // Step 1: Try to get the user document with expanded relations
+    let currentUserResponse;
 
-    if (currentUser.documents.length > 0) {
-      return currentUser.documents[0];
+    try {
+      currentUserResponse = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        [
+          Query.equal("accountid", currentAccount.$id),
+          Query.limit(1),
+          Query.expand(["save", "save.post"]), // expand relations safely
+        ]
+      );
+    } catch (error) {
+      console.warn("Could not expand save field, falling back to base user fetch.");
+      currentUserResponse = await databases.listDocuments(
+        appwriteConfig.databaseId,
+        appwriteConfig.userCollectionId,
+        [Query.equal("accountid", currentAccount.$id), Query.limit(1)]
+      );
     }
 
+    // Step 2: If user found
+    if (currentUserResponse.documents.length > 0) {
+      return currentUserResponse.documents[0];
+    }
+
+    // Step 3: If user doesn't exist — create a new one
     const avatarUrl = avatars.getInitials(currentAccount.name || "User");
     const newUser = await saveUserToDB({
       accountid: currentAccount.$id,
       name: currentAccount.name || "Unknown",
       email: currentAccount.email,
-      username: currentAccount.name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+      username:
+        currentAccount.name?.toLowerCase().replace(/\s+/g, "") || "unknown",
       imageurl: avatarUrl,
     });
 
     if (!newUser) throw new Error("Failed to save user to database during sign-in");
-    console.log("New user created during sign-in:", newUser); // Debugging log
 
+    console.log("New user created during sign-in:", newUser);
     return newUser;
   } catch (error) {
-    console.error("Error in getCurrentUser:", error);
+    console.error("Error in getCurrentUser:", error.message);
     return null;
   }
 }
+
 
 export async function signOutAccount() {
   try {
@@ -135,6 +156,41 @@ export async function signOutAccount() {
 }
 
 // POST
+export async function getUserById(userId) {
+  try {
+    const user = await databases.getDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      userId
+    );
+
+    if (!user) throw new Error("User not found");
+
+    return user;
+  } catch (error) {
+    console.log(error);
+  }
+}
+export async function getUserPosts(userId) {
+  if (!userId) return;
+
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [
+        Query.equal("creator", userId),
+        Query.orderDesc("$createdAt")
+      ]
+    );
+
+    if (!posts) throw new Error("No posts found");
+
+    return posts;
+  } catch (error) {
+    console.log("Error fetching user posts:", error);
+  }
+}
 
 export async function createPost(post) {
   try {
@@ -414,3 +470,69 @@ export async function deletePost(postId, imageId) {
     console.log("deletePost error:", error);
   }
 }
+export async function updateUser(user) {
+  try {
+    console.log("Updating user:", {
+      id: user.userId,
+      name: user.name,
+      bio: user.bio,
+      imageurl: user.imageUrl,
+    });
+
+    const response = await databases.updateDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.userCollectionId,
+      user.userId,
+      {
+        name: user.name,
+        bio: user.bio,
+        imageurl: user.imageUrl,
+      }
+    );
+
+    console.log("Update success:", response);
+    return response;
+  } catch (error) {
+    console.error("Update failed:", error.message, error);
+  }
+}
+
+export async function getInfinitePosts({ pageParam }) {
+  const queries = [Query.orderDesc("$updatedAt"), Query.limit(9)];
+
+  if (pageParam) {
+    queries.push(Query.cursorAfter(pageParam.toString()));
+  }
+
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      queries
+    );
+
+    if (!posts) throw new Error("No posts found");
+
+    return posts;
+  } catch (error) {
+    console.log("Error fetching infinite posts:", error);
+  }
+}
+export async function searchPosts(searchTerm) {
+  try {
+    const posts = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.postCollectionId,
+      [Query.search("Captions", searchTerm)]
+    );
+
+    if (!posts) throw new Error("No posts found");
+
+    return posts;
+  } catch (error) {
+    console.log("Error searching posts:", error);
+  }
+}
+
+
+

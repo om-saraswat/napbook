@@ -13,19 +13,18 @@ import {
   signOutAccount,
   getUsers,
   createPost,
-  // getPostById,
   updatePost,
-  // getUserPosts,
+  getUserPosts,
   deletePost,
   likePost,
-  // getUserById,
-  // updateUser,
+  updateUser,
   getRecentPosts,
-  // getInfinitePosts,
-  // searchPosts,
+  getInfinitePosts,
+  searchPosts,
   savePost,
   deleteSavedPost,
   getPostById,
+  getUserById,
 } from "../appwrite/api";
 
 // ============================================================
@@ -232,3 +231,6 @@ export const useUpdateUser = () => {
     },
   });
 };
+
+
+
