@@ -67,7 +67,7 @@ const PostForm = ({ post, action }) => {
     }
 
     navigate("/");
-  };}
+  }
   catch (err) {
     console.error("Post submit error:", err);
     toast({ title: "Something went wrong. Please try again." });
