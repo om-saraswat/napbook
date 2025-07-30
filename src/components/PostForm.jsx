@@ -18,6 +18,7 @@ import { useToast } from "../components/ui/use-toast";
 import { useUserContext } from "../context/AuthContext";
 import { FileUploader , Loader} from "../components/shared"
 import { useCreatePost, useUpdatePost} from "../lib/react-query/querieandmutation";
+import { useRef } from "react";
 
 const PostForm = ({ post, action }) => {
   const navigate = useNavigate();
@@ -34,12 +35,14 @@ const PostForm = ({ post, action }) => {
 
     },
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const { mutateAsync: createPost, isLoading: isLoadingCreate } = useCreatePost();
   const { mutateAsync: updatePost, isLoading: isLoadingUpdate } = useUpdatePost();
 
   const handleSubmit = async (value) => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current) return;
+    isSubmittingRef.current = true;
+  try{
     if (post && action === "Update") {
       const updatedPost = await updatePost({
         ...value,
@@ -64,7 +67,13 @@ const PostForm = ({ post, action }) => {
     }
 
     navigate("/");
-  };
+  };}
+  catch (err) {
+    console.error("Post submit error:", err);
+    toast({ title: "Something went wrong. Please try again." });
+  } finally {
+    isSubmittingRef.current = false;
+  }
 
 
   return (
