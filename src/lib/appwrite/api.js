@@ -85,57 +85,53 @@ export async function getAccount() {
 export async function getCurrentUser() {
   try {
     const currentAccount = await getAccount();
-    console.log("Current Account:", currentAccount);
-
     if (!currentAccount) throw new Error("No account found");
 
-    // Step 1: Try to get the user document with expanded relations
-    let currentUserResponse;
-
+    // Try to fetch user document with expanded saves
+    let userResponse;
     try {
-      currentUserResponse = await databases.listDocuments(
+      userResponse = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.userCollectionId,
         [
           Query.equal("accountid", currentAccount.$id),
           Query.limit(1),
-          Query.expand(["save", "save.post"]), // expand relations safely
+          Query.expand(["save", "save.post"]), // Make sure this matches your schema!
         ]
       );
-    } catch (error) {
-      console.warn("Could not expand save field, falling back to base user fetch.");
-      currentUserResponse = await databases.listDocuments(
+    } catch (err) {
+      console.warn("Fallback: failed to expand save.post, retrying without expand.");
+      userResponse = await databases.listDocuments(
         appwriteConfig.databaseId,
         appwriteConfig.userCollectionId,
-        [Query.equal("accountid", currentAccount.$id), Query.limit(1)]
+        [
+          Query.equal("accountid", currentAccount.$id),
+          Query.limit(1),
+        ]
       );
     }
 
-    // Step 2: If user found
-    if (currentUserResponse.documents.length > 0) {
-      return currentUserResponse.documents[0];
+    if (userResponse.documents.length > 0) {
+      return userResponse.documents[0];
     }
 
-    // Step 3: If user doesn't exist — create a new one
+    // Create user if not found
     const avatarUrl = avatars.getInitials(currentAccount.name || "User");
     const newUser = await saveUserToDB({
       accountid: currentAccount.$id,
       name: currentAccount.name || "Unknown",
       email: currentAccount.email,
-      username:
-        currentAccount.name?.toLowerCase().replace(/\s+/g, "") || "unknown",
+      username: (currentAccount.name || "user").toLowerCase().replace(/\s+/g, ""),
       imageurl: avatarUrl,
     });
 
-    if (!newUser) throw new Error("Failed to save user to database during sign-in");
-
-    console.log("New user created during sign-in:", newUser);
     return newUser;
   } catch (error) {
     console.error("Error in getCurrentUser:", error.message);
     return null;
   }
 }
+
 
 
 export async function signOutAccount() {
@@ -417,6 +413,21 @@ export async function likePost(postId, likesArray) {
 // ============================== SAVE POST
 export async function savePost(userId, postId) {
   try {
+    // Check if already saved
+    const existing = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.savesCollectionId,
+      [
+        Query.equal("user", userId),
+        Query.equal("post", postId),
+        Query.limit(1)
+      ]
+    );
+    if (existing.documents.length > 0) {
+      return existing.documents[0]; // Already saved, return existing
+    }
+
+    // Create new save record
     const updatedPost = await databases.createDocument(
       appwriteConfig.databaseId,
       appwriteConfig.savesCollectionId,
@@ -451,25 +462,28 @@ export async function deleteSavedPost(savedRecordId) {
     console.log("deleteSavedPost error:", error);
   }
 }
+// deletePost function — FIXED
 export async function deletePost(postId, imageId) {
-  if (!postId || !imageId) return;
+  if (!postId) return;
 
   try {
-    const statusCode = await databases.deleteDocument(
+    await databases.deleteDocument(
       appwriteConfig.databaseId,
       appwriteConfig.postCollectionId,
       postId
     );
 
-    if (!statusCode) throw new Error("Failed to delete post document");
+    if (imageId) {
+      await deleteFile(imageId);
+    }
 
-    await deleteFile(imageId);
-
-    return { status: "Ok" };
+    return { status: "ok" };
   } catch (error) {
     console.log("deletePost error:", error);
+    throw error;
   }
 }
+
 export async function updateUser(user) {
   try {
     console.log("Updating user:", {

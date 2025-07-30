@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { checkIsLiked } from "@/lib/utils";
 import {
@@ -14,28 +15,33 @@ export const PostStats = ({ post, userId }) => {
   const likesList = post.likes.map((user) => user.$id);
 
   const [likes, setLikes] = useState(likesList);
-  const [isSaved, setIsSaved] = useState(false);
+  const [savedId, setSavedId] = useState(null); // Track actual saved record ID
 
   const { mutate: likePost } = useLikePost();
   const { mutate: savePost } = useSavePost();
   const { mutate: deleteSavePost } = useDeleteSavedPost();
 
   const { data: currentUser } = useGetCurrentUser();
+  const queryClient = useQueryClient();
 
-  // ✅ Safe check for saved post
-  const savedPostRecord = Array.isArray(currentUser?.save)
-    ? currentUser.save.find((record) => record.post.$id === post.$id)
-    : null;
+  const isSaved = !!savedId;
 
+  // ✅ SAFELY handle both expanded and non-expanded `post` references
   useEffect(() => {
-    setIsSaved(!!savedPostRecord);
-  }, [savedPostRecord]);
+    if (Array.isArray(currentUser?.save)) {
+      const found = currentUser.save.find((record) => {
+        const savedPostId = record?.post?.$id || record?.post;
+        return savedPostId === post.$id;
+      });
+
+      setSavedId(found ? found.$id : null);
+    }
+  }, [currentUser, post.$id]);
 
   const handleLikePost = (e) => {
     e.stopPropagation();
 
     let likesArray = [...likes];
-
     if (likesArray.includes(userId)) {
       likesArray = likesArray.filter((id) => id !== userId);
     } else {
@@ -49,13 +55,30 @@ export const PostStats = ({ post, userId }) => {
   const handleSavePost = (e) => {
     e.stopPropagation();
 
-    if (savedPostRecord) {
-      setIsSaved(false);
-      return deleteSavePost(savedPostRecord.$id);
+    if (savedId) {
+      deleteSavePost(savedId, {
+        onSuccess: () => {
+          setSavedId(null);
+          queryClient.invalidateQueries({ queryKey: ["getCurrentUser"] });
+        },
+        onError: () => {
+          console.log("Failed to unsave post");
+        },
+      });
+    } else {
+      savePost(
+        { userId, postId: post.$id },
+        {
+          onSuccess: (data) => {
+            setSavedId(data?.$id);
+            queryClient.invalidateQueries({ queryKey: ["getCurrentUser"] });
+          },
+          onError: () => {
+            console.log("Failed to save post");
+          },
+        }
+      );
     }
-
-    savePost({ userId, postId: post.$id });
-    setIsSaved(true);
   };
 
   const containerStyles = location.pathname.startsWith("/profile")
@@ -95,8 +118,3 @@ export const PostStats = ({ post, userId }) => {
 };
 
 export default PostStats;
-
-
-
-
-//4:29 savedpost issue fix

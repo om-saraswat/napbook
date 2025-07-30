@@ -20,6 +20,7 @@ const Saved = () => {
   if (loadingUser || !delayedUser) return <Loader />;
   console.log(delayedUser?.save)
   const savePosts = (delayedUser?.saves || [])
+    .filter((savePost) => savePost.post) // Only include saves with valid post
     .map((savePost) => ({
       ...savePost.post,
       creator: {

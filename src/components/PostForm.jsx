@@ -16,8 +16,8 @@ import {
 } from "@/components/ui";
 import { useToast } from "../components/ui/use-toast";
 import { useUserContext } from "../context/AuthContext";
-import { FileUploader , Loader} from "../components/shared"
-import { useCreatePost, useUpdatePost} from "../lib/react-query/querieandmutation";
+import { FileUploader, Loader } from "../components/shared";
+import { useCreatePost, useUpdatePost } from "../lib/react-query/querieandmutation";
 import { useRef } from "react";
 
 const PostForm = ({ post, action }) => {
@@ -32,9 +32,9 @@ const PostForm = ({ post, action }) => {
       file: [],
       location: post ? post.location : "",
       tags: Array.isArray(post?.tags) ? post.tags.join(",") : post?.tags || "",
-
     },
   });
+
   const isSubmittingRef = useRef(false);
   const { mutateAsync: createPost, isLoading: isLoadingCreate } = useCreatePost();
   const { mutateAsync: updatePost, isLoading: isLoadingUpdate } = useUpdatePost();
@@ -42,39 +42,40 @@ const PostForm = ({ post, action }) => {
   const handleSubmit = async (value) => {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
-  try{
-    if (post && action === "Update") {
-      const updatedPost = await updatePost({
+
+    try {
+      if (post && action === "Update") {
+        const updatedPost = await updatePost({
+          ...value,
+          postId: post.$id,
+          imageId: post.imageId,
+          imageUrl: post.imageUrl,
+        });
+
+        if (!updatedPost) {
+          toast({ title: `${action} post failed. Please try again.` });
+        }
+        navigate(`/posts/${post.$id}`);
+        return;
+      }
+
+      const newPost = await createPost({
         ...value,
-        postId: post.$id,
-        imageId: post.imageId,
-        imageUrl: post.imageUrl,
+        userId: user.id,
       });
 
-      if (!updatedPost) {
+      if (!newPost) {
         toast({ title: `${action} post failed. Please try again.` });
       }
-      return navigate(`/posts/${post.$id}`);
+
+      navigate("/");
+    } catch (err) {
+      console.error("Post submit error:", err);
+      toast({ title: "Something went wrong. Please try again." });
+    } finally {
+      isSubmittingRef.current = false;
     }
-
-    const newPost = await createPost({
-      ...value,
-      userId: user.id,
-    });
-
-    if (!newPost) {
-      toast({ title: `${action} post failed. Please try again.` });
-    }
-
-    navigate("/");
-  }
-  catch (err) {
-    console.error("Post submit error:", err);
-    toast({ title: "Something went wrong. Please try again." });
-  } finally {
-    isSubmittingRef.current = false;
-  }
-
+  };
 
   return (
     <Form {...form}>
@@ -156,9 +157,9 @@ const PostForm = ({ post, action }) => {
           <Button
             type="submit"
             className="shad-button_primary whitespace-nowrap"
-            disabled={isLoadingCreate || isLoadingUpdate || isSubmitting}
+            disabled={isLoadingCreate || isLoadingUpdate}
           >
-            {(isLoadingCreate || isLoadingUpdate || isSubmitting) && <Loader />}
+            {(isLoadingCreate || isLoadingUpdate) && <Loader />}
             {action} Post
           </Button>
         </div>

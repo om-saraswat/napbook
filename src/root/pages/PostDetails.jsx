@@ -18,21 +18,29 @@ const PostDetails = () => {
 
   const { data: post, isLoading } = useGetPostById(id);
   const { data: userPosts, isLoading: isUserPostLoading } = useGetUserPosts(
-    post?.creator?.$id
+    post?.Creator?.$id
   );
-  const { mutate: deletePost } = useDeletePost();
+  const { mutateAsync: deletePost } = useDeletePost(); // ✅ use mutateAsync so we can await
 
   const relatedPosts = userPosts?.documents.filter(
     (userPost) => userPost.$id !== id
   );
 
-  const handleDeletePost = () => {
-    deletePost({ postId: id, imageId: post?.imageId });
-    navigate(-1);
+  const handleDeletePost = async () => {
+    const confirmed = window.confirm("Are you sure you want to delete this post?");
+    if (!confirmed) return;
+
+    try {
+      await deletePost({ postId: id, imageId: post?.imageid });
+      alert("Post deleted successfully.");
+      navigate(-1); 
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Failed to delete post.");
+    }
   };
-  {console.log(post)}
+
   return (
-    
     <div className="post_details-container">
       <div className="hidden md:flex max-w-5xl w-full">
         <Button
@@ -40,12 +48,7 @@ const PostDetails = () => {
           variant="ghost"
           className="shad-button_ghost"
         >
-          <img
-            src={"/assets/icons/back.svg"}
-            alt="back"
-            width={24}
-            height={24}
-          />
+          <img src="/assets/icons/back.svg" alt="back" width={24} height={24} />
           <p className="small-medium lg:base-medium">Back</p>
         </Button>
       </div>
@@ -54,19 +57,14 @@ const PostDetails = () => {
         <Loader />
       ) : (
         <div className="post_details-card">
-          <img
-            src={post?.imageurl}
-            alt="post"
-            className="post_details-img"
-          />
-          {console.log(post?.imageurl)}
+          <img src={post?.imageurl} alt="post" className="post_details-img" />
+
           <div className="post_details-info">
             <div className="flex-between w-full">
               <Link
-                to={`/profile/${post?.creator?.$id}`}
+                to={`/profile/${post?.Creator?.$id}`}
                 className="flex items-center gap-3"
               >
-                {console.log( post?.Creator?.imageurl)}
                 <img
                   src={
                     post?.Creator?.imageurl ||
@@ -91,34 +89,31 @@ const PostDetails = () => {
                 </div>
               </Link>
 
-              <div className="flex-center gap-4">
-                <Link
-                  to={`/update-post/${post?.$id}`}
-                  className={`${user.id !== post?.Creator?.$id ? "hidden" : ""}`}
-                >
-                  <img
-                    src={"/assets/icons/edit.svg"}
-                    alt="edit"
-                    width={24}
-                    height={24}
-                  />
-                </Link>
+              {user.id === post?.Creator?.$id && (
+                <div className="flex-center gap-4">
+                  <Link to={`/update-post/${post?.$id}`}>
+                    <img
+                      src="/assets/icons/edit.svg"
+                      alt="edit"
+                      width={24}
+                      height={24}
+                    />
+                  </Link>
 
-                <Button
-                  onClick={handleDeletePost}
-                  variant="ghost"
-                  className={`ost_details-delete_btn ${
-                    user.id !== post?.Creator?.$id ? "hidden" : ""
-                  }`}
-                >
-                  <img
-                    src={"/assets/icons/delete.svg"}
-                    alt="delete"
-                    width={24}
-                    height={24}
-                  />
-                </Button>
-              </div>
+                  <Button
+                    onClick={handleDeletePost}
+                    variant="ghost"
+                    className="post_details-delete_btn"
+                  >
+                    <img
+                      src="/assets/icons/delete.svg"
+                      alt="delete"
+                      width={24}
+                      height={24}
+                    />
+                  </Button>
+                </div>
+              )}
             </div>
 
             <hr className="border w-full border-dark-4/80" />
@@ -130,7 +125,7 @@ const PostDetails = () => {
                 {Array.isArray(post?.tags) &&
                   post.tags.map((tag, index) => (
                     <li
-                      key={`${tag}${index}`}
+                      key={`${tag}-${index}`}
                       className="text-light-3 small-regular"
                     >
                       #{tag}
