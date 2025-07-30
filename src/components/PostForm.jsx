@@ -34,11 +34,12 @@ const PostForm = ({ post, action }) => {
 
     },
   });
-
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { mutateAsync: createPost, isLoading: isLoadingCreate } = useCreatePost();
   const { mutateAsync: updatePost, isLoading: isLoadingUpdate } = useUpdatePost();
 
   const handleSubmit = async (value) => {
+    if (isSubmitting) return;
     if (post && action === "Update") {
       const updatedPost = await updatePost({
         ...value,
@@ -64,6 +65,7 @@ const PostForm = ({ post, action }) => {
 
     navigate("/");
   };
+
 
   return (
     <Form {...form}>
@@ -145,9 +147,9 @@ const PostForm = ({ post, action }) => {
           <Button
             type="submit"
             className="shad-button_primary whitespace-nowrap"
-            disabled={isLoadingCreate || isLoadingUpdate}
+            disabled={isLoadingCreate || isLoadingUpdate || isSubmitting}
           >
-            {(isLoadingCreate || isLoadingUpdate) && <Loader />}
+            {(isLoadingCreate || isLoadingUpdate || isSubmitting) && <Loader />}
             {action} Post
           </Button>
         </div>
